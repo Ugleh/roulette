@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Roulette</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0px;
+        overflow: hidden; /* Hide scrollbars */
+      }
+    </style>
+  </head>
+  <body>
+      <script>
+          let ROULETTE_NUMBERS = {
+  0: {0:"Green"},
+  1: {28:"Black"},
+  2: {9:"Red"},
+  3: {26:"Black"},
+  4: {30:"Red"},
+  5: {11:"Black"},
+  6: {7:"Red"},
+  7: {20:"Black"},
+  8: {32:"Red"},
+  9: {17:"Black"},
+  10: {5:"Red"},
+  11: {22:"Black"},
+  12: {34:"Red"},
+  13: {15:"Black"},
+  14: {3:"Red"},
+  15: {24:"Black"},
+  16: {36:"Red"},
+  17: {13:"Black"},
+  18: {1:"Red"},
+  19: {"00":"Green"},
+  20: {27:"Red"},
+  21: {10:"Black"},
+  22: {25:"Red"},
+  23: {29:"Black"},
+  24: {12:"Red"},
+  25: {8:"Black"},
+  26: {19:"Red"},
+  27: {31:"Black"},
+  28: {18:"Red"},
+  29: {6:"Black"},
+  30: {21:"Red"},
+  31: {33:"Black"},
+  32: {16:"Red"},
+  33: {4:"Black"},
+  34: {23:"Red"},
+  35: {35:"Black"},
+  36: {14:"Red"},
+  37: {2:"Black"}
+};
+let finishedCentering = false;
+
+let rouletteNumbers = [];
+let CAN_MOVE = false;
+let finishedAmounts = 0;
+let CAN_CLICK = true;
+
+function setup() {
+  init();
+  createCanvas(windowWidth, windowHeight);
+}
+
+function init() {
+  rouletteNumbers = [];
+  CAN_MOVE = false;
+  finishedAmounts = 0;
+  CAN_CLICK = true;
+  finishedCentering = false;
+
+  createNumbers();
+}
+  function windowResized() {
+    resizeCanvas(windowWidth, windowHeight);
+  }
+
+  function draw() {
+    background(11);
+    let isOver = false;
+    let recordedSpeed = -1;
+    rouletteNumbers.forEach(function(rouletteNumber) {
+      if(!CAN_CLICK){
+        let numSpeed = rouletteNumber.move(CAN_MOVE);
+        recordedSpeed = numSpeed;
+        if(numSpeed != -1){
+          isOver = true;
+        }
+      }
+      rouletteNumber.display();
+    });
+
+    rouletteNumbers = rouletteNumbers.filter(function(rouletteNumber){
+      return !rouletteNumber.canDie();
+    });
+    if(rouletteNumbers[0] == undefined){
+      createNumbers(0, recordedSpeed);
+    }
+    if(rouletteNumbers[0].speed <= 0) {
+      CAN_MOVE = false;
+      finishedAmounts++;
+      rouletteNumbers.length = 2;
+      //if rouletterNumbers[0] is more on screen center it, otherwise center rouletteNumbers[1]
+      if(rouletteNumbers[0].x > ((windowWidth / 2) * -1)){
+        if(!CAN_CLICK){
+          prepNextStart(rouletteNumbers[0].index);
+        }
+        rouletteNumbers[0].centerNumber();
+      }else{
+        if(!CAN_CLICK){
+          prepNextStart(rouletteNumbers[1].index);
+        }
+        rouletteNumbers[1].centerNumber();
+      }
+      finishedCentering = true;
+      CAN_CLICK = true;
+    }
+
+
+  }
+ 
+  function prepNextStart(index) {
+    //split ROULETTE_NUMBERS by the index and put the bottom part on top
+    let bottom = Object.keys(ROULETTE_NUMBERS).slice(index).reduce((result, key) => {result[key] = ROULETTE_NUMBERS[key]; return result;}, {});
+    let top = Object.keys(ROULETTE_NUMBERS).slice(0, index).reduce((result, key) => {result[key] = ROULETTE_NUMBERS[key]; return result;}, {});
+    ROULETTE_NUMBERS = {};
+    
+    let iindex = 0;
+
+    Object.keys(bottom).forEach(function (key){
+      ROULETTE_NUMBERS[iindex] = bottom[key];
+      iindex++;
+    });
+    Object.keys(top).forEach(function (key){
+      ROULETTE_NUMBERS[iindex] = top[key];
+      iindex++;
+    });
+
+    init();
+  }
+  function mouseClicked() {
+    if(!CAN_CLICK) return;
+    finishedCentering = false;
+    CAN_CLICK = false;
+    CAN_MOVE = !CAN_MOVE;
+    if(finishedAmounts != 0){
+      createNumbers();
+    }
+  }
+
+  function createNumbers(offset = 0, recordedSpeed = -1) {
+    let index = 0;
+    rouletteNumbers  = [];
+    if(recordedSpeed == -1){
+      SPEED = windowWidth / floor(random(14,18));
+    }else{
+      SPEED = recordedSpeed;
+    }
+
+    for (const key in ROULETTE_NUMBERS) {
+      rouletteNumbers.push(new number(Object.keys(ROULETTE_NUMBERS[key])[0], Object.values(ROULETTE_NUMBERS[key])[0], (windowWidth * (index+offset)), SPEED, index));
+      index++;
+    }
+  }
+
+  class number {
+    constructor(label, color, x, speed, index) {
+      this.label = label
+      this.color = color
+      this.x = x
+      this.speed = speed;
+      this.index = index;
+    }
+
+    move(CAN_MOVE) {
+        if(CAN_MOVE){
+            if(this.speed > 0){
+                this.speed -= windowWidth / 8000;
+                this.x = this.x - this.speed;
+                if(this.x < -windowWidth && this.label == "2"){
+                    return this.speed;
+                }
+            }    
+        }
+        return -1;
+    }
+
+    canDie() {
+        if(this.x < -windowWidth){
+            return true;
+        }
+        return false;
+    }
+
+    centerNumber() {
+        if(this.color == "Red"){
+            fill(255, 0, 0);
+        }else if(this.color == "Black"){
+            fill(0, 0, 0);
+        }else if(this.color == "Green"){
+            fill(0, 255, 0);
+        }
+
+        rect(0, 0, windowWidth, windowHeight);
+        fill(255);
+        textSize(windowWidth / 10);
+        text(this.label, windowWidth / 2, windowHeight / 2);
+    }
+
+    resetSpeed(speed){
+        this.speed = speed;
+    }
+  
+    display() {
+        if(this.color == "Red"){
+            fill(255, 0, 0);
+        }else if(this.color == "Black"){
+            fill(0, 0, 0);
+        }else if(this.color == "Green"){
+            fill(0, 255, 0);
+        }
+        rect(this.x, 0, windowWidth, windowHeight);
+        fill(255);
+        textSize(windowWidth / 10);
+        text(this.label, this.x + windowWidth / 2, windowHeight / 2);
+    }
+  }
+  
+      </script>
+  </body>
+</html>
